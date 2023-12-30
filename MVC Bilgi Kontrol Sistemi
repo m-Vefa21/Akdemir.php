@@ -1,0 +1,99 @@
+<?php
+class StudentModel {
+    private $db;
+
+    public function __construct($db) {
+        $this->db = $db;
+    }
+
+    public function getAllStudents() {
+        $query = "SELECT * FROM students";
+        $result = $this->db->query($query);
+        return $result->fetch_all(MYSQLI_ASSOC);
+    }
+
+    public function getStudentById($studentId) {
+        $query = "SELECT * FROM students WHERE id = $studentId";
+        $result = $this->db->query($query);
+        return $result->fetch_assoc();
+    }
+
+    public function addStudent($name, $surname, $grades) {
+        $query = "INSERT INTO students (name, surname, grades) VALUES ('$name', '$surname', '$grades')";
+        return $this->db->query($query);
+    }
+}
+
+class StudentController {
+    private $model;
+
+    public function __construct($model) {
+        $this->model = $model;
+    }
+
+    public function getAllStudents() {
+        return $this->model->getAllStudents();
+    }
+
+    public function getStudentById($studentId) {
+        return $this->model->getStudentById($studentId);
+    }
+
+    public function addStudent($name, $surname, $grades) {
+        return $this->model->addStudent($name, $surname, $grades);
+    }
+}
+
+class StudentView {
+    private $controller;
+
+    public function __construct($controller) {
+        $this->controller = $controller;
+    }
+
+    public function showAllStudents() {
+        $students = $this->controller->getAllStudents();
+        foreach ($students as $student) {
+            echo "ID: " . $student['id'] . " - Name: " . $student['name'] . " - Surname: " . $student['surname'] . "<br>";
+        }
+    }
+
+    public function showStudentById($studentId) {
+        $student = $this->controller->getStudentById($studentId);
+        echo "ID: " . $student['id'] . " - Name: " . $student['name'] . " - Surname: " . $student['surname'] . "<br>";
+    }
+
+    public function showAddStudentForm() {
+        echo "
+            <form method='post' action=''>
+                Name: <input type='text' name='name' required><br>
+                Surname: <input type='text' name='surname' required><br>
+                Grades: <input type='text' name='grades' required><br>
+                <input type='submit' value='Add Student'>
+            </form>
+        ";
+    }
+}
+
+// Uygulama
+$db = new mysqli("localhost", "kullanici_adiniz", "sifreniz", "veritabani_adiniz");
+
+$model = new StudentModel($db);
+$controller = new StudentController($model);
+$view = new StudentView($controller);
+
+if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['name']) && isset($_POST['surname']) && isset($_POST['grades'])) {
+    $controller->addStudent($_POST['name'], $_POST['surname'], $_POST['grades']);
+}
+
+echo "<h2>All Students:</h2>";
+$view->showAllStudents();
+
+echo "<h2>Student by ID:</h2>";
+$view->showStudentById(1);
+
+echo "<h2>Add Student:</h2>";
+$view->showAddStudentForm();
+
+$db->close();
+?>
