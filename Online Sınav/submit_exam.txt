@@ -1,0 +1,58 @@
+<?php
+$conn = new mysqli("localhost", "kullanici_adiniz", "sifreniz", "veritabani_adiniz");
+
+if ($conn->connect_error) {
+    die("Veritabanı bağlantı hatası: " . $conn->connect_error);
+}
+
+if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['submit_exam'])) {
+    $exam_id = $_POST['exam_id'];
+    $student_id = 1; // Örnek olarak sabit bir öğrenci ID'si kullanıldı, gerçek bir oturum yönetimi sistemine entegre edilmelidir.
+
+    // Öğrencinin verdiği cevapları kontrol et
+    $questions = $conn->query("SELECT * FROM questions WHERE exam_id = $exam_id");
+
+    while ($question = $questions->fetch_assoc()) {
+        $question_id = $question['id'];
+        $chosen_answer = $_POST['answer_' . $question_id];
+
+        $is_correct = ($chosen_answer == $question['correct_answer']) ? 1 : 0;
+
+        // Veritabanına öğrencinin cevaplarını kaydet
+        $conn->query("INSERT INTO answers (exam_id, question_id, student_id, chosen_answer, is_correct) VALUES 
+            ($exam_id, $question_id, $student_id, '$chosen_answer', $is_correct)");
+    }
+} else {
+    // Eğer geçerli bir sınav ID'si yoksa, kullanıcıyı yönlendir
+    header("Location: index.php");
+}
+?>
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sınav Sonuçları</title>
+</head>
+<body>
+    <h1>Sınav Sonuçları</h1>
+
+    <p>Sınavınız başarıyla gönderildi. İşte sonuçlarınız:</p>
+
+    <?php
+    $result = $conn->query("SELECT * FROM answers WHERE exam_id = $exam_id AND student_id = $student_id");
+
+    while ($answer = $result->fetch_assoc()) {
+        $question = $conn->query("SELECT * FROM questions WHERE id = " . $answer['question_id'])->fetch_assoc();
+        echo "<p>";
+        echo "Soru: " . $question['question_text'] . "<br>";
+        echo "Seçilen Cevap: " . $answer['chosen_answer'] . "<br>";
+        echo "Doğru Cevap: " . $question['correct_answer'] . "<br>";
+        echo "Sonuç: " . ($answer['is_correct'] ? "Doğru" : "Yanlış");
+        echo "</p>";
+    }
+    ?>
+</body>
+</html>
+
